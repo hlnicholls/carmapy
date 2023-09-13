@@ -456,20 +456,25 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
 
         def match_dgCMatrix(dgCMat1, dgCMat2):
             n1, p1 = dgCMat1.shape
+            n2, p2 = dgCMat2.shape
             J1 = np.repeat(np.arange(p1), np.diff(dgCMat1.indptr))
             I1 = dgCMat1.indices
-            x1 = dgCMat1.data
-            n2, p2 = dgCMat2.shape
             J2 = np.repeat(np.arange(p2), np.diff(dgCMat2.indptr))
             I2 = dgCMat2.indices
-            x2 = dgCMat2.data
             RowLst1 = [set(J1[I1 == i]) for i in range(n1)]
-            is_empty1 = set(range(n1)) - set(I1)
             RowLst2 = [set(J2[I2 == i]) for i in range(n2)]
+            is_empty1 = set(range(n1)) - set(I1)
             is_empty2 = set(range(n2)) - set(I2)
             result = [RowLst1.index(row) + 1 if row in RowLst1 else None for row in RowLst2]
-            for i in sorted(list(is_empty1), reverse=True):
-                result.insert(i, i + 1)
+            for idx in [i for i, x in enumerate(result) if x in is_empty1]:
+                result[idx] += 1
+
+            if any(is_empty1):
+                if any(is_empty2):
+                    result = list(is_empty1) + result
+                else:
+                    result = [None] + result
+
             return result
 
     # Compute posterior inclusion probability based on the marginal likelihood and model space
@@ -675,7 +680,9 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
 
     # Add visited models into the storage space of models
                 add_index = match_dgCMatrix(B_list[1], add_B[1])
-                print(len())
+                print("Shape of add_index:", np.shape(add_index))
+                print("Shape of B_list[1]:", np.shape(B_list[1]))
+                print("Shape of add_B[1]:", np.shape(add_B[1]))
                 add_index = [x if x is not None else np.nan for x in add_index]
                 print("Shape of add_B[0]:", np.shape(add_B[0]))
                 print("Shape of np.isnan(add_index):", np.shape(np.isnan(add_index)))
@@ -692,7 +699,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                 sort_order = np.argsort(B_list[0])[::-1]
                 B_list[0] = [B_list[0][i] for i in sort_order]
                 B_list[1] = B_list[1][sort_order,]
-    # Select next visiting model 
+    # Select next visiting model
                 if len(working_S) != 0:
                     set_star = pd.DataFrame({'set_index': range(1, 4),
                                             'gamma_set_index': [np.nan] * 3,
