@@ -359,7 +359,6 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
             C_list = [[], []]
 
             B_list = [[prior_dist(null_model)], sparse.csr_matrix(np.zeros(p))]
-            print('b list', B_list)
 
             if input_conditional_S_list is None:
                 conditional_S_list = []
@@ -482,17 +481,18 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
             infi_index = np.where(np.isinf(likeli))[0]
             if len(infi_index) != 0:
                 likeli = np.delete(likeli, infi_index)
-                model_space = np.delete(model_space, infi_index, axis=0)
+                model_space = np.delete(model_space.toarray(), infi_index, axis=0)
             na_index = np.where(np.isnan(likeli))[0]
             if len(na_index) != 0:
                 likeli = np.delete(likeli, na_index)
-                model_space = np.delete(model_space, na_index, axis=0)
-            aa = likeli - np.nanmax(likeli)  # Using np.nanmax to ignore NaN values
+                model_space = np.delete(model_space.toarray(), na_index, axis=0)
+            aa = likeli - np.nanmax(likeli)  
             prob_sum = np.sum(np.exp(aa))
-            p = model_space.shape[1]  # Number of columns in model_space
+            p = model_space.shape[1]
             result_prob = np.full(p, np.nan)
             for i in range(p):
-                result_prob[i] = np.sum(np.exp(aa[np.where(model_space[:, i] == 1)])) / prob_sum
+                column_dense = model_space[:, i].toarray().flatten()
+                result_prob[i] = np.sum(np.exp(aa[np.where(column_dense == 1)])) / prob_sum
             return result_prob
 
         def index_fun_inner(x, p=p):
@@ -685,9 +685,6 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                     add_B = [set_gamma_margin, matrix_gamma[1]]
 
     # Add visited models into the storage space of models
-                print('b list', B_list[1].shape)
-                print('add b', add_B[1].shape)
-                print('b list', B_list)
                 add_index = match_dgCMatrix(B_list[1], add_B[1])
                 add_index = [x if x is not None else np.nan for x in add_index]
                 if len([x for x in add_index if not np.isnan(x)]) > 10:
@@ -700,12 +697,15 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                     B_list[0] = np.concatenate((B_list[0], add_B[0][np.isnan(add_index)]))
                     B_list[1] = vstack((B_list[1], add_B[1][np.isnan(add_index),]))
                 else:
+                    B_list[0] = B_list[0][1:]
                     B_list[0] = np.concatenate((B_list[0], add_B[0]))
+                    B_list[1] = B_list[1][1:, :]
                     B_list[1] = vstack((B_list[1], add_B[1]))
 
                 sort_order = np.argsort(B_list[0])[::-1]
                 B_list[0] = [B_list[0][i] for i in sort_order]
                 B_list[1] = B_list[1][sort_order,]
+                
     # Select next visiting model
                 if len(working_S) != 0:
                     set_star = pd.DataFrame({'set_index': range(1, 4),
@@ -721,6 +721,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
 
     # The Bayesian hypothesis testing for outliers (Z-scores/LD discrepancies)
                     if outlier_switch:
+                        print('outlier swtich=True')
                         for i in range(1, len(set_gamma)):
                             while True:
                                 aa = set_gamma_margin - current_log_margin
@@ -728,9 +729,6 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                                 if np.sum(np.isnan(aa)) != 0:
                                     aa[np.isnan(aa)] = np.min(aa[~np.isnan(aa)])
                                 aa = aa.flatten()
-                                print('aa length', aa.shape)
-                                print('set gamma margin length', set_gamma_margin.shape)
-                                print(set_gamma_margin)
                                 set_star['gamma_set_index'][i] = np.random.choice(range(0, len(set_gamma_margin[0])), 1, p=np.exp(aa))
                                 set_star['margin'][i] = set_gamma_margin[set_star['gamma_set_index'][i]]
 
@@ -738,6 +736,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                                 # Added these 2 lines to correct input for ridge_fun()
                                 test_S = np.concatenate([np.array(sublist).flatten() for sublist in test_S])
                                 test_S = np.unique(test_S - 1).astype(np.int32)
+                                print('test_S', test_S)
 
                                 modi_Sigma = Sigma
                                 temp_Sigma = Sigma
@@ -755,6 +754,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                                     print('This is xi hat:', opizer)
 
                                 if np.exp(test_log_BF) < outlier_BF_index:
+                                    print('np.exp(test_log_BF) < outlier_BF_index')
                                     set_gamma[i] = set_gamma[i][~np.isin(set_gamma[i], set_star['gamma_set_index'][i])]
                                     set_gamma_margin[i] = set_gamma_margin[i][~np.isin(set_gamma_margin[i], set_star['gamma_set_index'][i])]
                                     conditional_S = np.concatenate((conditional_S, test_S[~np.isin(test_S, working_S)]))
@@ -823,7 +823,9 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
             else:
                 result_prob = PIP_func(result_B_list[0], result_B_list[1])
 
-            conditional_S_list = pd.DataFrame({'Index': conditional_S, 'Z': z[conditional_S, :]})
+            print('conditional_S', conditional_S)
+            if conditional_S != None:
+                conditional_S_list = pd.DataFrame({'Index': conditional_S, 'Z': z[conditional_S, :]})
 
             stored_bf = 0
 
@@ -831,31 +833,22 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                 if not os.path.exists(output_labels):
                     os.makedirs(output_labels)
 
-                np.savetxt(os.path.join(output_labels, f'post_{label}_poi_likeli.txt'), result_B_list[0], fmt='%.18e', delimiter=' ', newline='\n', header='', footer='', comments='')
-                mmwrite(os.path.join(output_labels, f'post_{label}_poi_gamma.mtx'), result_B_list[1])
-                np.savetxt(os.path.join(output_labels, f'post_{label}.txt'), result_prob, fmt='%.18e', delimiter=' ', newline='\n', header='', footer='', comments='')
-                if outlier_switch:
-                    conditional_S_list.to_pickle(os.path.join(output_labels, f'post_{label}_outliers.pkl'))
+               # np.savetxt(os.path.join(output_labels, f'post_{label}_poi_likeli.txt'), result_B_list[0], fmt='%.18e', delimiter=' ', newline='\n', header='', footer='', comments='')
+               # mmwrite(os.path.join(output_labels, f'post_{label}_poi_gamma.mtx'), result_B_list[1])
+               # np.savetxt(os.path.join(output_labels, f'post_{label}.txt'), result_prob, fmt='%.18e', delimiter=' ', newline='\n', header='', footer='', comments='')
+               # if outlier_switch:
+                    #conditional_S_list.to_pickle(os.path.join(output_labels, f'post_{label}_outliers.pkl'))
 
-            difference = abs(np.mean(result_B_list[0][:round(np.quantile(np.arange(1, len(result_B_list[0])+1), probs=0.25))]) - stored_bf)
-            print(difference)
-            if difference < epsilon:
+            difference = abs(np.mean(result_B_list[0][:round(np.quantile(np.arange(1, len(result_B_list[0])+1), q=0.25))]) - stored_bf)
+            if difference < epsilon[0]:
                 break
             else:
-                stored_bf = np.mean(result_B_list[0][:round(np.quantile(np.arange(1, len(result_B_list[0])+1), probs=0.25))])
+                stored_bf = np.mean(result_B_list[0][:round(np.quantile(np.arange(1, len(result_B_list[0])+1), q=0.25))])
 
             return [result_B_list, C_list, result_prob, conditional_S_list, prob_list]
 
 # Burning step
     previous_result = []
-    all_C_list = []
-
-    for i in range(1, L+1):
-        t0 = time.time()
-        all_C_list.append(module_cauchy_shotgun(z_array, ld_matrix, input_S=None, epsilon=epsilon_list, Max_Model_Dim=Max_Model_Dim, outlier_switch=outlier_switch, tau=tau, num_causal=num_causal, y_var=y_var, label=label_list, output_labels=output_labels, effect_size_prior=effect_size_prior, model_prior=model_prior, inner_all_iter=all_inner_iter))
-        t1 = time.time() - t0
-        print(f'This is locus {i} burning time')
-        print(t1)
 
 # Run fine-mapping step (module function) for each locus included in the analysis
     all_C_list = []
@@ -864,7 +857,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
         t0 = time.time()
         all_C_list.append(module_cauchy_shotgun(z_array, ld_matrix, epsilon=epsilon_list, input_S=None, Max_Model_Dim=Max_Model_Dim, outlier_switch=outlier_switch, tau=tau, num_causal=num_causal, y_var=y_var, label=label_list, output_labels=output_labels, effect_size_prior=effect_size_prior, model_prior=model_prior, inner_all_iter=all_inner_iter))
         t1 = time.time() - t0
-        print(f'This is locus {i} burning time')
+        print(f'This is model space {i} burning time:')
         print(t1)
 
 # Running CARMA
@@ -895,7 +888,6 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
             else:
                 w = np.vstack((w, w_list[i-1].values))
 
-    previous_result = []
     for i in range(1, L+1):
         previous_result.append(np.mean(all_C_list[i-1][0][0][0][0:round(np.quantile(range(1, len(all_C_list[i-1][0][0][0])), 0.25))]))
 
