@@ -359,7 +359,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
             C_list = [[], []]
 
             B_list = [[prior_dist(null_model)], sparse.csr_matrix(np.zeros(p))]
-            print('B list', B_list)
+            print('b list', B_list)
 
             if input_conditional_S_list is None:
                 conditional_S_list = []
@@ -667,33 +667,40 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                                 set_gamma_prior.append(result)
                             set_gamma_margin += np.array(set_gamma_prior)
                         else:
-                            set_gamma_margin[i] = np.full(matrix_gamma[i].shape[0], np.nan)
-                            set_gamma_margin[i][~np.isnan(computed_index)] = C_list[0][col_num][~np.isnan(computed_index)]
+                            set_gamma_margin = np.full(matrix_gamma[i].shape[0], np.nan)
+                            set_gamma_margin[~np.isnan(computed_index)] = C_list[0].extend([~np.isnan(computed_index)])
                             if np.sum(np.isnan(computed_index)) != 0:
-                                set_gamma_i = np.array([set_gamma[i]], dtype=np.uint32) - 1
-                                set_gamma_margin[i][np.isnan(computed_index)] = np.apply_along_axis(marginal_likelihood, 0, set_gamma_i[np.isnan(computed_index)], Sigma=Sigma, z=z, tau=tau_sample, p_S=p_S, y_sigma=y_var)
-                            C_list[0][col_num].extend(set_gamma_margin[i][np.isnan(computed_index)])
+                                set_gamma_i = np.array([set_gamma[i]], dtype=np.uint32)
+                                set_gamma_margin[0][np.isnan(computed_index)] = np.apply_along_axis(marginal_likelihood, 0, set_gamma_i[np.isnan(computed_index)], Sigma=Sigma, z=z, tau=tau_sample, p_S=p_S, y_sigma=y_var)
+                            C_list[0].extend(set_gamma_margin[np.isnan(computed_index)])
                             C_list[1][col_num] = vstack((C_list[1][col_num], matrix_gamma[i][np.isnan(computed_index)]))
-                            set_gamma_margin[i] += np.apply_along_axis(prior_dist, 0, matrix_gamma[i])
+                            #switching from below to for loop due to prior_dist sparse matrix output
+                            #set_gamma_margin[i] += np.apply_along_axis(prior_dist, 0, matrix_gamma[i])
+                            for j in range(matrix_gamma[i].shape[0]):
+                                row = matrix_gamma[i].getrow(j).toarray()[0]
+                                result = prior_dist(row)
+                                set_gamma_prior.append(result)
+                            set_gamma_margin += np.array(set_gamma_prior)
 
                     add_B = [set_gamma_margin, matrix_gamma[1]]
 
     # Add visited models into the storage space of models
+                print('b list', B_list[1].shape)
+                print('add b', add_B[1].shape)
+                print('b list', B_list)
                 add_index = match_dgCMatrix(B_list[1], add_B[1])
-                print("Shape of add_index:", np.shape(add_index))
-                print("Shape of B_list[1]:", np.shape(B_list[1]))
-                print("Shape of add_B[1]:", np.shape(add_B[1]))
                 add_index = [x if x is not None else np.nan for x in add_index]
-                print("Shape of add_B[0]:", np.shape(add_B[0]))
-                print("Shape of np.isnan(add_index):", np.shape(np.isnan(add_index)))
                 if len([x for x in add_index if not np.isnan(x)]) > 10:
                     check_index = np.random.choice(np.where(~np.isnan(add_index))[0], 10)
 
+                B_list[0] = np.array(B_list[0])
+                add_B[0] = add_B[0].flatten()
+
                 if len([x for x in add_index if not np.isnan(x)]) != 0:
-                    B_list[0].extend(add_B[0][np.isnan(add_index)])
+                    B_list[0] = np.concatenate((B_list[0], add_B[0][np.isnan(add_index)]))
                     B_list[1] = vstack((B_list[1], add_B[1][np.isnan(add_index),]))
                 else:
-                    B_list[0].extend(add_B[0])
+                    B_list[0] = np.concatenate((B_list[0], add_B[0]))
                     B_list[1] = vstack((B_list[1], add_B[1]))
 
                 sort_order = np.argsort(B_list[0])[::-1]
@@ -713,9 +720,49 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                         set_star['margin'][i] = set_gamma_margin[i][set_star['gamma_set_index'][i]]
 
     # The Bayesian hypothesis testing for outliers (Z-scores/LD discrepancies)
-                if outlier_switch:
-                    for i in range(1, len(set_gamma)):
-                        while True:
+                    if outlier_switch:
+                        for i in range(1, len(set_gamma)):
+                            while True:
+                                aa = set_gamma_margin - current_log_margin
+                                aa = aa - np.max(aa)
+                                if np.sum(np.isnan(aa)) != 0:
+                                    aa[np.isnan(aa)] = np.min(aa[~np.isnan(aa)])
+                                aa = aa.flatten()
+                                print('aa length', aa.shape)
+                                print('set gamma margin length', set_gamma_margin.shape)
+                                print(set_gamma_margin)
+                                set_star['gamma_set_index'][i] = np.random.choice(range(0, len(set_gamma_margin[0])), 1, p=np.exp(aa))
+                                set_star['margin'][i] = set_gamma_margin[set_star['gamma_set_index'][i]]
+
+                                test_S = set_gamma[i][set_star['gamma_set_index'][i]]
+                                # Added these 2 lines to correct input for ridge_fun()
+                                test_S = np.concatenate([np.array(sublist).flatten() for sublist in test_S])
+                                test_S = np.unique(test_S - 1).astype(np.int32)
+
+                                modi_Sigma = Sigma
+                                temp_Sigma = Sigma
+                                if len(test_S) > 1:
+                                    modi_ld_S = modi_Sigma[test_S, test_S]
+                                    opizer = optimize(ridge_fun, interval=[0, 1], maximum=True)
+                                    modi_ld_S = opizer['maximum'] * modi_ld_S + (1 - opizer['maximum']) * np.diag(np.diag(modi_ld_S))
+
+                                    modi_Sigma[test_S, test_S] = modi_ld_S
+
+                                    test_log_BF = outlier_likelihood(test_S, Sigma, z, outlier_tau, len(test_S), 1) - outlier_likelihood(test_S, modi_Sigma, z, outlier_tau, len(test_S), 1)
+                                    test_log_BF = -abs(test_log_BF)
+                                    print('Outlier BF:', test_log_BF)
+                                    print(test_S)
+                                    print('This is xi hat:', opizer)
+
+                                if np.exp(test_log_BF) < outlier_BF_index:
+                                    set_gamma[i] = set_gamma[i][~np.isin(set_gamma[i], set_star['gamma_set_index'][i])]
+                                    set_gamma_margin[i] = set_gamma_margin[i][~np.isin(set_gamma_margin[i], set_star['gamma_set_index'][i])]
+                                    conditional_S = np.concatenate((conditional_S, test_S[~np.isin(test_S, working_S)]))
+                                    conditional_S = np.unique(conditional_S)
+                                else:
+                                    break
+                    else:
+                        for i in range(1, len(set_gamma)):
                             aa = set_gamma_margin[i] - current_log_margin
                             aa = aa - aa[np.argmax(aa)]
                             if np.sum(np.isnan(aa)) != 0:
@@ -724,67 +771,29 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                             set_star['gamma_set_index'][i] = np.random.choice(range(1, len(set_gamma_margin[i]) + 1), 1, p=np.exp(aa))
                             set_star['margin'][i] = set_gamma_margin[i][set_star['gamma_set_index'][i]]
 
-                            test_S = set_gamma[i][set_star['gamma_set_index'][i]]
-                            # Added these 2 lines to correct input for ridge_fun()
-                            test_S = np.concatenate([np.array(sublist).flatten() for sublist in test_S])
-                            test_S = np.unique(test_S - 1).astype(np.int32)
+                    if len(working_S) == num_causal:
+                        set_star = set_star.drop(1)
+                        aa = set_star['margin'] - current_log_margin - max(set_star['margin'] - current_log_margin)
+                        sec_sample = np.random.choice([1, 3], 1, p=np.exp(aa))
+                        S = set_gamma[sec_sample][set_star['gamma_set_index'][np.where(sec_sample == set_star['set_index'])[0][0]], :]
+                    else:
+                        aa = set_star['margin'] - current_log_margin - max(set_star['margin'] - current_log_margin)
+                        sec_sample = np.random.choice(range(1, 4), 1, p=np.exp(aa))
+                        S = set_gamma[sec_sample][set_star['gamma_set_index'][sec_sample], :]
 
-                            modi_Sigma = Sigma
-                            temp_Sigma = Sigma
-                            if len(test_S) > 1:
-                                modi_ld_S = modi_Sigma[test_S, test_S]
-                                opizer = optimize(ridge_fun, interval=[0, 1], maximum=True)
-                                modi_ld_S = opizer['maximum'] * modi_ld_S + (1 - opizer['maximum']) * np.diag(np.diag(modi_ld_S))
-
-                                modi_Sigma[test_S, test_S] = modi_ld_S
-
-                                test_log_BF = outlier_likelihood(test_S, Sigma, z, outlier_tau, len(test_S), 1) - outlier_likelihood(test_S, modi_Sigma, z, outlier_tau, len(test_S), 1)
-                                test_log_BF = -abs(test_log_BF)
-                                print('Outlier BF:', test_log_BF)
-                                print(test_S)
-                                print('This is xi hat:', opizer)
-
-                            if np.exp(test_log_BF) < outlier_BF_index:
-                                set_gamma[i] = set_gamma[i][~np.isin(set_gamma[i], set_star['gamma_set_index'][i])]
-                                set_gamma_margin[i] = set_gamma_margin[i][~np.isin(set_gamma_margin[i], set_star['gamma_set_index'][i])]
-                                conditional_S = np.concatenate((conditional_S, test_S[~np.isin(test_S, working_S)]))
-                                conditional_S = np.unique(conditional_S)
-                            else:
-                                break
-                else:
-                    for i in range(1, len(set_gamma)):
-                        aa = set_gamma_margin[i] - current_log_margin
+                        set_star = pd.DataFrame({'set_index': [1, 1, 1], 'gamma_set_index': [np.nan, np.nan, np.nan], 'margin': [np.nan, np.nan, np.nan]})
+                        aa = set_gamma_margin[2] - current_log_margin
                         aa = aa - aa[np.argmax(aa)]
                         if np.sum(np.isnan(aa)) != 0:
                             aa[np.isnan(aa)] = np.min(aa[~np.isnan(aa)])
+                        indices = np.argsort(np.exp(aa))[::-1][:min(len(aa), int(p/2))]
+                        set_star['gamma_set_index'][2] = np.random.choice(indices + 1, 1, p=np.exp(aa)[indices])
+                        set_star['margin'][2] = set_gamma_margin[2][set_star['gamma_set_index'][2]]
+                        S = set_gamma[2][set_star['gamma_set_index'][2], :]
+                        print(set_star)
 
-                        set_star['gamma_set_index'][i] = np.random.choice(range(1, len(set_gamma_margin[i]) + 1), 1, p=np.exp(aa))
-                        set_star['margin'][i] = set_gamma_margin[i][set_star['gamma_set_index'][i]]
-
-                if len(working_S) == num_causal:
-                    set_star = set_star.drop(1)
-                    aa = set_star['margin'] - current_log_margin - max(set_star['margin'] - current_log_margin)
-                    sec_sample = np.random.choice([1, 3], 1, p=np.exp(aa))
-                    S = set_gamma[sec_sample][set_star['gamma_set_index'][np.where(sec_sample == set_star['set_index'])[0][0]], :]
-                else:
-                    aa = set_star['margin'] - current_log_margin - max(set_star['margin'] - current_log_margin)
-                    sec_sample = np.random.choice(range(1, 4), 1, p=np.exp(aa))
-                    S = set_gamma[sec_sample][set_star['gamma_set_index'][sec_sample], :]
-
-                    set_star = pd.DataFrame({'set_index': [1, 1, 1], 'gamma_set_index': [np.nan, np.nan, np.nan], 'margin': [np.nan, np.nan, np.nan]})
-                    aa = set_gamma_margin[2] - current_log_margin
-                    aa = aa - aa[np.argmax(aa)]
-                    if np.sum(np.isnan(aa)) != 0:
-                        aa[np.isnan(aa)] = np.min(aa[~np.isnan(aa)])
-                    indices = np.argsort(np.exp(aa))[::-1][:min(len(aa), int(p/2))]
-                    set_star['gamma_set_index'][2] = np.random.choice(indices + 1, 1, p=np.exp(aa)[indices])
-                    set_star['margin'][2] = set_gamma_margin[2][set_star['gamma_set_index'][2]]
-                    S = set_gamma[2][set_star['gamma_set_index'][2], :]
-                    print(set_star)
-
-                print('this is running S:', ','.join(map(str, S)))
-                S = np.unique(np.concatenate((S, conditional_S)))
-
+                    print('this is running S:', ','.join(map(str, S)))
+                    S = np.unique(np.concatenate((S, conditional_S)))
 
     # Output of the results of the module function
             result_B_list = []
