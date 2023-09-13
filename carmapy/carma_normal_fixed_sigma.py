@@ -888,6 +888,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
             else:
                 w = np.vstack((w, w_list[i-1].values))
 
+    print('all_C_list', all_C_list)
     for i in range(1, L+1):
         previous_result.append(np.mean(all_C_list[i-1][0][0][0][0:round(np.quantile(range(1, len(all_C_list[i-1][0][0][0])), 0.25))]))
 
@@ -928,7 +929,6 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
     try:
         glm_beta = EM_M_step_func(input_response=M_step_response, w=w, input_alpha=input_alpha, EM_dist=EM_dist)
         prior_prob_list = []
-
 
         for i in range(1, L+1):
             if prior_prob_computation == 'Intercept.approx':
