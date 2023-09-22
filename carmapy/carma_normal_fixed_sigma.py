@@ -9,6 +9,8 @@ from scipy.io import mmwrite
 from scipy.special import gammaln, betaln
 from math import log
 from scipy.sparse import csc_matrix, csr_matrix, vstack
+from scipy.sparse import hstack, vstack, csr_matrix
+from scipy.sparse import coo_matrix
 from sklearn.preprocessing import StandardScaler
 from sklearn import linear_model
 from sklearn.linear_model import LogisticRegressionCV, PoissonRegressor
@@ -48,7 +50,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
         q_list - Coefficient vector for annotations
         Sigma_list - LD matrix
         S_list - Index set of causal SNPs assumed by the current model
-        all_C_list - Lists of likelihoods and model space to then compute credible models
+        all_C_list - Lists of likelihoods and model space to then compute credible sets
         add_B - Appended storage of visited models (add bayesian?)
         set_gamma - Model configurations for calculating marginal likelihood
 
@@ -80,38 +82,41 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
 
     np.seterr(divide='ignore', invalid='ignore')
     z_array = np.array(z_list)
-    L = len(z_list)
-    p = len(z_list)
+    L = 1 # z_list needs to be a list of 1 np array - previously: len(z_list)
+    p = len(z_list) # needs to be 1
     log_2pi = np.log(2 * np.pi)
     p_list = []
-    for i in range(L):
+    for i in range(L): # range L = 1
         z_list[i] = np.asmatrix(z_list[i])
         p_list.append(z_list[i].shape[0])
     B = Max_Model_Dim
     all_B_list = [[np.zeros(0, dtype=int), csr_matrix((0, p_list[i]), dtype=int)] for i in range(L)]
-    q_list = []
-    if w_list is not None:
-        for i in range(L):
-            q_list.append(w_list[i].shape[1])
-            invariant_var_index = np.where(np.std(w_list[i][:, 1:], axis=0) == 0)[0]
-            if len(invariant_var_index) != 0:
-                invariant_var = w_list[i][:, invariant_var_index + 1]
-                scaler = StandardScaler()
-                w_list[i] = np.c_[1, scaler.fit_transform(w_list[i][:, 1:])]
-                w_list[i][:, invariant_var_index + 1] = invariant_var
-            else:
-                scaler = StandardScaler()
-                w_list[i] = np.c_[1, scaler.fit_transform(w_list[i][:, 1:])]
+    # Variables for fine-mapping with annotations:
+    # q_list = []
+    # if w_list is not None:
+    #     for i in range(L):
+    #         q_list.append(w_list[i].shape[1])
+    #         invariant_var_index = np.where(np.std(w_list[i][:, 1:], axis=0) == 0)[0]
+    #         if len(invariant_var_index) != 0:
+    #             invariant_var = w_list[i][:, invariant_var_index + 1]
+    #             scaler = StandardScaler()
+    #             w_list[i] = np.c_[1, scaler.fit_transform(w_list[i][:, 1:])]
+    #             w_list[i][:, invariant_var_index + 1] = invariant_var
+    #         else:
+    #             scaler = StandardScaler()
+    #             w_list[i] = np.c_[1, scaler.fit_transform(w_list[i][:, 1:])]
 
     if label_list is None:
         label_list = [f'locus_{i}' for i in range(1, L + 1)]
 
     #Sigma_list = ld_matrix
     #S_list = [np.zeros(0, dtype=int) for i in range(L)]
+    # TODO check shape for all_C_list
     all_C_list = [[np.zeros(0, dtype=int), csr_matrix((0, p_list[i]), dtype=int)] for i in range(L)]
+    print('all C list setup:', all_C_list)
     all_epsilon_threshold = 0
     epsilon_list = [epsilon_threshold * p_list[i] for i in range(L)]
-    all_epsilon_threshold = sum(epsilon_list)
+    all_epsilon_threshold = sum(epsilon_list) # i am summing, but the list is one number
     model_prior = 'Poisson'
     standardize_model_space = True
 
@@ -283,6 +288,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
             index_fun(): Constructs a sparse matrix (CSR) based on the given input matrix `outer_x`, with optional binning.
             ridge_fun(): Computes the outlier likelihood based on a modified ridge regression function.
         """
+        print('z input at start of module_cauchy:', len(z), z)
         # The prior distributions on the model space
         prob_list = []
         if model_prior == 'input.prob':
@@ -349,17 +355,17 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
         if input_S is not None:
             S = input_S
         else:
-            S = []
+            S = [] # we are here
 
         conditional_S = None
         #null_model = sparse.csr_matrix(np.zeros(p))
         null_model = np.zeros(p)
         null_margin = prior_dist(null_model)
-        print(null_margin)
+        print('null margin using prior dist:', null_margin) # 0.0 output matches R equivalent
         if C_list is None:
             C_list = [[], []]
 
-            B_list = [[prior_dist(null_model)], sparse.csr_matrix(np.zeros(p))]
+            B_list = [[null_margin], sparse.csr_matrix(np.zeros(p))]
 
             if input_conditional_S_list is None:
                 conditional_S_list = []
@@ -496,25 +502,30 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                 result_prob[i] = np.sum(np.exp(aa[np.where(column_dense == 1)])) / prob_sum
             return result_prob
 
-        def index_fun_inner(x, p=p):
-            n = x.shape[0]
-            row_indices = np.repeat(np.arange(n), x.size // n)
-            col_indices = x.T.flatten().astype(int)
-            data = np.ones(n * x.shape[1], dtype=int)
-            m = csr_matrix((data, (row_indices, col_indices)), shape=(n, p))
+        def index_fun_inner(x, max_col_index):
+            n_rows, n_cols = x.shape
+            row_indices = np.repeat(np.arange(n_rows), n_cols)
+            col_indices = x.T.flatten()
+            col_indices = np.minimum(col_indices, max_col_index)
+            data = np.ones(n_rows * n_cols, dtype=int)
+            m = coo_matrix((data, (row_indices, col_indices)), shape=(n_rows, max_col_index + 1)).tocsc()
             return m
 
-        def index_fun(outer_x, max_model_dimins=10):
+        def index_fun(outer_x, Max_Model_Dimins=10):
             outer_x = np.array(outer_x)
-            if outer_x.shape[0] > 1000:
-                index_bins = np.where(np.arange(1, outer_x.shape[0] + 1) % (outer_x.shape[0] // max_model_dimins) == 0)[0]
-                result_m = index_fun_inner(outer_x[:index_bins[0], :])
-                for b in range(len(index_bins) - 1):
-                    result_m = vstack([result_m, index_fun_inner(outer_x[index_bins[b]:index_bins[b + 1], :])])
-                if index_bins[-1] != outer_x.shape[0] - 1:
-                    result_m = vstack([result_m, index_fun_inner(outer_x[index_bins[-1] + 1:, :])])
+            n_rows, _ = outer_x.shape
+            max_col_index = n_rows - 1
+
+            if n_rows > 1000:
+                index_bins = np.arange(n_rows // Max_Model_Dimins, n_rows, n_rows // Max_Model_Dimins)
+                result_m = index_fun_inner(outer_x[:index_bins[0], :], max_col_index)
+                for i in range(len(index_bins) - 1):
+                    result_m = vstack([result_m, index_fun_inner(outer_x[index_bins[i]:index_bins[i + 1], :], max_col_index)])
+                if index_bins[-1] != n_rows:
+                    result_m = vstack([result_m, index_fun_inner(outer_x[index_bins[-1]:, :], max_col_index)])
             else:
-                result_m = index_fun_inner(outer_x)
+                result_m = index_fun_inner(outer_x, max_col_index)
+            result_m = result_m.tocsr()
             return result_m
 
         def ridge_fun(x, modi_ld_S, test_S_indices, temp_Sigma, z, outlier_tau, outlier_likelihood):
@@ -522,7 +533,9 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
             temp_Sigma[test_S_indices[:, None], test_S_indices] = temp_ld_S
             return outlier_likelihood(test_S_indices, temp_Sigma, z, outlier_tau, len(test_S_indices), 1)
 
+
         for l in range(0, inner_all_iter):
+            print('module_cauchy_shotgun outermost for loop iteration:', l)
             for h in range(0, 10):
                 # Shotgun COMPUTATION
                 set_gamma = set_gamma_func(S, conditional_S, p=p)
@@ -549,11 +562,12 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                     S_model = csr_matrix(([1], ([0], [working_S[0] - 1])), shape=(1, p))
                     p_S = len(working_S)
                     working_S = np.concatenate([np.array(sublist).flatten() for sublist in S])
-                    working_S = np.unique(working_S - 1).astype(np.uint32)
+                    working_S = np.unique(working_S - 1).astype(np.int64)
                     Sigma = np.array(ld_matrix, dtype=np.float64)
                     current_log_margin = marginal_likelihood(working_S, Sigma, z, tau_sample, p_S, y_var) + prior_dist(S_model)
                 else:
                     current_log_margin = prior_dist(null_model)
+                print('current_log_margin when S!=0:', current_log_margin)
 
                 if len(working_S) > 1:
                     print('working_S > 1')
@@ -572,12 +586,13 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                             print('len(C_list[1]) > col_num')
                             computed_index = match_dgCMatrix(C_list[1][col_num], matrix_gamma[i])
 
-                        p_S = len(set_gamma[i])
+                        print('len(set_gamma[i])', len(set_gamma))
+                        p_S = len(set_gamma) - 1
                         # p_S = set_gamma[i].shape[1]
                         computed_index = np.array(computed_index)
-                        #set_gamma_i = np.array([set_gamma[i]], dtype=np.uint32) - 1
+                        #set_gamma_i = np.array([set_gamma[i]], dtype=np.int64) - 1
                         if np.sum(~np.isnan(computed_index)) == 0:
-                            set_gamma_margin.append(np.apply_along_axis(marginal_likelihood, 0, np.array([set_gamma[i]], dtype=np.uint32), Sigma=Sigma, z=z, tau=tau_sample, p_S=p_S, y_sigma=y_var))
+                            set_gamma_margin.append(np.apply_along_axis(marginal_likelihood, 0, np.array([set_gamma[i]], dtype=np.int64), Sigma=Sigma, z=z, tau=tau_sample, p_S=p_S, y_sigma=y_var))
                             while len(C_list[0]) <= col_num:
                                 C_list[0].append([])
                                 C_list[1].append([])
@@ -609,28 +624,39 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
 
                     for i in range(1, 3):
                         matrix_gamma[i] = index_fun(set_gamma[i])
-                        #print('matrix gamma for loop', i, matrix_gamma)
+                        print('set gamma into index s==1',len(set_gamma[i]))
+                        print('matrix gamma S==1', i, matrix_gamma[i])
+                        print(type(matrix_gamma[i]))
+                        print(matrix_gamma[i].shape)
                         if i == 1:
                             col_num = len(set_gamma[i])
                             C_list[1] = (csr_matrix(([], ([], [])), shape=(0, p)))
-                            C_list[0].append([])
+                            #C_list[0].append([]) - not needed as extend() used later
                             computed_index = []
                         else:
-                            computed_index = list(range(481))
+                            computed_index = list(range(p))
                         #if len(C_list[0][0]) < col_num:
                         #    C_list[1].append(csr_matrix(([], ([], [])), shape=(0, p)))
                         #    C_list[0].append([])
                         #    computed_index = []
                         #else:
                         #    computed_index = match_dgCMatrix(csr_matrix(C_list[0]), matrix_gamma[i])
-
-                        p_S = len(set_gamma[i])
+                        print('len(set_gamma[i])', len(set_gamma))
+                        p_S = len(set_gamma) - 1
+                        print('s=1 p_S', p_S)
                         computed_index = np.array(computed_index)
                         if np.sum(~np.isnan(computed_index)) == 0:
                             set_gamma_margin = []
-                            set_gamma_margin = np.apply_along_axis(marginal_likelihood, 1, np.array(set_gamma[i], dtype=np.uint32), Sigma=np.array(Sigma, dtype=np.float64), z=np.array(z, dtype=np.float64), tau=tau_sample, p_S=p, y_sigma=y_var)
+                            #set_gamma_margin = np.apply_along_axis(marginal_likelihood, 1, np.array(set_gamma[i], dtype=np.int64), Sigma=np.array(Sigma, dtype=np.float64), z=np.array(z, dtype=np.float64), tau=tau_sample, p_S=p, y_sigma=y_var)
+                            set_gamma_margin.append(np.apply_along_axis(marginal_likelihood, 1, np.array(set_gamma[i], dtype=np.int64), Sigma=np.array(Sigma, dtype=np.float64), z=np.array(z, dtype=np.float64), tau=tau_sample, p_S=p_S, y_sigma=y_var))
+                            print('set_gamma_margin S==1', len(set_gamma_margin[0]), set_gamma_margin)
                             C_list[0].extend(set_gamma_margin)
+                            print('s=1 matrix_gamma[1]', matrix_gamma[i])
+                            print(C_list[1].shape, matrix_gamma[i].shape)
+                            print(type(C_list[1]))
                             C_list[1] = vstack((C_list[1], matrix_gamma[i]))
+                            print(C_list[1])
+ 
                             for j in range(matrix_gamma[i].shape[0]):
                                 row = matrix_gamma[i].getrow(j).toarray()[0]
                                 result = prior_dist(row)
@@ -659,28 +685,45 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
 
                 if len(working_S) == 0:
                     for i in [1]:
+                        print('set_gamma[i] before index_fun', len(set_gamma[i]), type(set_gamma[i]))
                         matrix_gamma[i] = index_fun(set_gamma[i])
+                        print('matrix gamma type', type(matrix_gamma[i]))
+                        print('matrix gamma shape after index_fun when S==0:', matrix_gamma[i].shape)
+                        print('matrix gamma index_fun when S==0:', matrix_gamma[i])
                         col_num = len(set_gamma[i])
+                        print('col_num when S==0', col_num)
 
                         if len(C_list[1]) < col_num:
                             C_list[1] = []
-                            C_list[0].append([])
+                            #C_list[0].append([])
 
                         if len(C_list[1]) == 0:
                             C_list[1] = csr_matrix(([], ([], [])), shape=(0, p))
-                            C_list[0].append([])
+                            #C_list[0].append([])
                             computed_index = []
                         else:
                             computed_index = match_dgCMatrix(C_list[1][col_num], matrix_gamma[i])
 
+                        print('C_list setup before use (S==0)', len(C_list), C_list)
+
                         computed_index = np.array(computed_index)
+                        p_S = len(set_gamma) - 2
                         if np.sum(~np.isnan(computed_index)) == 0:
-                            set_gamma_margin.append(np.apply_along_axis(marginal_likelihood, 1, np.array(set_gamma[i], dtype=np.uint32), Sigma=np.array(Sigma, dtype=np.float64), z=np.array(z, dtype=np.float64), tau=tau_sample, p_S=p, y_sigma=y_var))
+                            print('Inputs for C++ marginal likelihood function:')
+                            print('np.array(set_gamma[i], dtype=np.int64)', len(np.array(set_gamma[i], dtype=np.int64)), np.array(set_gamma[i], dtype=np.int64).shape)
+                            print('np.array(Sigma, dtype=np.float64)', Sigma.shape)
+                            print('np.array(z, dtype=np.float64)', len(np.array(z, dtype=np.float64)))
+                            print(f"tau={tau_sample}, p_S={p_S}, y_sigma={y_var}")
+                            #pd.DataFrame(np.array(Sigma, dtype=np.float64)).to_csv("carma_sigma.csv", index=False, header=False)
+                            #pd.DataFrame(np.array(z, dtype=np.float64)).to_csv("carma_z.csv", index=False, header=False)
+                            set_gamma_margin.append(np.apply_along_axis(marginal_likelihood, 1, np.array(set_gamma[i], dtype=np.int64), Sigma=np.array(Sigma, dtype=np.float64), z=np.array(z, dtype=np.float64), tau=tau_sample, p_S=p_S, y_sigma=y_var))
+                            #print('set_gamma_margin S==0', len(set_gamma_margin[0]), set_gamma_margin)
                             C_list[0] = set_gamma_margin
                             C_list[1] = vstack((C_list[1], matrix_gamma[1]))
+                            print('C list after first marginal likelihood', C_list)
                             # sparse matrices not able to enter np.apply_along_axis:  
                             #set_gamma_prior[i] = np.apply_along_axis(prior_dist, 1, matrix_gamma[i])
-                            # switched to for loop
+                            # switched to for loop:
                             for j in range(matrix_gamma[1].shape[0]):
                                 row = matrix_gamma[1].getrow(j).toarray()[0]
                                 result = prior_dist(row)
@@ -690,7 +733,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                             set_gamma_margin = np.full(matrix_gamma[1].shape[0], np.nan)
                             set_gamma_margin[~np.isnan(computed_index)] = C_list[0].extend([~np.isnan(computed_index)])
                             if np.sum(np.isnan(computed_index)) != 0:
-                                set_gamma_i = np.array([set_gamma[i]], dtype=np.uint32)
+                                set_gamma_i = np.array([set_gamma[i]], dtype=np.int64)
                                 set_gamma_margin[0][np.isnan(computed_index)] = np.apply_along_axis(marginal_likelihood, 0, set_gamma_i[np.isnan(computed_index)], Sigma=Sigma, z=z, tau=tau_sample, p_S=p_S, y_sigma=y_var)
                             C_list[0].extend(set_gamma_margin[np.isnan(computed_index)])
                             C_list[1][col_num] = vstack((C_list[1][col_num], matrix_gamma[1][np.isnan(computed_index)]))
@@ -701,12 +744,15 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                                 result = prior_dist(row)
                                 set_gamma_prior.append(result)
                             set_gamma_margin += np.array(set_gamma_prior)
+                        print('C.list when S==0', 'length:', len(C_list), C_list)
 
                     add_B = [set_gamma_margin, matrix_gamma[1]]
+                    print('add_B when S==0', 'length of [0]:', len(add_B[0][0]), add_B)
 
     # Add visited models into the storage space of models
                 add_index = match_dgCMatrix(B_list[1], add_B[1])
                 add_index = [x if x is not None else np.nan for x in add_index]
+                #print('add_index setup:', add_index)
                 if len([x for x in add_index if not np.isnan(x)]) > 10:
                     check_index = np.random.choice(np.where(~np.isnan(add_index))[0], 10)
 
@@ -725,9 +771,11 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                 sort_order = np.argsort(B_list[0])[::-1]
                 B_list[0] = [B_list[0][i] for i in sort_order]
                 B_list[1] = B_list[1][sort_order,]
-            
+                print('working_S ==',working_S, 'B_list:', 'lengths:', len(B_list[0]), B_list[1].shape)
+
     # Select next visiting model
                 if len(working_S) != 0:
+                    print('working_S !=0 for selecting next model')
                     set_star = pd.DataFrame({'set_index': range(1, 4),
                                             'gamma_set_index': [np.nan] * 3,
                                             'margin': [np.nan] * 3})
@@ -797,6 +845,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                         sec_sample = np.random.choice(range(1, 4), 1, p=np.exp(aa))
                         S = set_gamma[sec_sample][set_star['gamma_set_index'][sec_sample], :]
                 else:
+                    print('setting new S (selecting new model) after S==0')
                     set_star = pd.DataFrame({'set_index': [1, 1, 1], 'gamma_set_index': [np.nan, np.nan, np.nan], 'margin': [np.nan, np.nan, np.nan]})
                     aa = set_gamma_margin - current_log_margin
                     aa = aa - np.max(aa)
@@ -810,6 +859,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
                     set_star.loc[1, 'margin'] = set_gamma_margin[0, int(chosen_index)]
                     idx = int(set_star.loc[1, 'gamma_set_index'])
                     S = [set_gamma[1][idx][0]]
+                    print('new S:', S)
 
             print('this is running S:', ','.join(map(str, S)))
             S = np.unique(np.concatenate((S, conditional_S)))
@@ -874,14 +924,13 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
     all_C_list = []
     all_C_list.append(module_cauchy_shotgun(z_array, ld_matrix, epsilon=epsilon_list, input_S=None, Max_Model_Dim=Max_Model_Dim, outlier_switch=outlier_switch, tau=tau, num_causal=num_causal, y_var=y_var, label=label_list, output_labels=output_labels, effect_size_prior=effect_size_prior, model_prior=model_prior, inner_all_iter=all_inner_iter))
     #print('all_C_list', all_C_list)
-    """   
     for i in range(1, L+1):
         t0 = time.time()
         all_C_list.append(module_cauchy_shotgun(z_array, ld_matrix, epsilon=epsilon_list, input_S=None, Max_Model_Dim=Max_Model_Dim, outlier_switch=outlier_switch, tau=tau, num_causal=num_causal, y_var=y_var, label=label_list, output_labels=output_labels, effect_size_prior=effect_size_prior, model_prior=model_prior, inner_all_iter=all_inner_iter))
         t1 = time.time() - t0
         print(f'This is model space {i} burning time:')
         print(t1)
-    """ 
+
 # Running CARMA
     delete_list = []
 
@@ -966,7 +1015,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
         prior_prob_list = [None] * L
 
 # Fine-mapping step for each locus, i.e., the E-step in the EM algorithm
-        for i in range(1, L+1):
+        for i in range(0, L):
             t0 = time.time()
             all_C_list[i-1] = module_cauchy_shotgun(z_array, ld_matrix, input_conditional_S_list=all_C_list[i-1][0][0][3],
                                                 Max_Model_Dim=Max_Model_Dim, y_var=y_var, num_causal=num_causal, epsilon=epsilon_list,
@@ -980,7 +1029,7 @@ def CARMA_fixed_sigma(z_list, ld_matrix, w_list=None, lambda_list=None, output_l
 
         difference = 0
         for i in range(1, L+1):
-            difference += np.sum(np.abs(previous_result[i-1] - np.mean(all_C_list[i-1][0][0][0][0:round(np.percentile(np.arange(1, len(all_C_list[i-1][0][0][0][0])+1), probs=0.25))])))
+            difference += np.sum(np.abs(previous_result[i-1] - np.mean(all_C_list[i][0][0][0][0:round(np.percentile(np.arange(1, len(all_C_list[i-1][0][0][0][0])+1), probs=0.25))])))
             print(f"This is difference: {difference}")
             if difference < all_epsilon_threshold:
                 break

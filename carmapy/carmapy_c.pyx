@@ -8,16 +8,16 @@ cdef double normal_sigma_fixed_marginal_fun_indi(double zSigmaz_S, double tau, d
     cdef double result = p_S / 2.0 * log(tau / (1.0 + tau)) + (zSigmaz_S / (2 * y_sigma * (1.0 + tau)))
     return result
 
-def Normal_fixed_sigma_marginal(np.ndarray[np.uint32_t, ndim=1] index_vec_input,
+def Normal_fixed_sigma_marginal(np.ndarray[np.int64_t, ndim=1] index_vec_input,
                                 np.ndarray[np.float64_t, ndim=2] Sigma,
-                                np.ndarray[np.float64_t, ndim=2] z,
+                                np.ndarray[np.float64_t, ndim=1] z,
                                 double tau,
                                 double p_S,
                                 double y_sigma):
-    cdef np.ndarray[np.uint32_t, ndim=1] index_vec = index_vec_input
+    cdef np.ndarray[np.int64_t, ndim=1] index_vec = index_vec_input
     cdef np.ndarray[np.float64_t, ndim=2] Sigma_S = Sigma[np.ix_(index_vec, index_vec)]
     cdef np.ndarray[np.float64_t, ndim=2] Sigma_S_inv = np.linalg.pinv(Sigma_S, rcond=0.00001)
-    cdef np.ndarray[np.float64_t, ndim=2] sub_z = z[index_vec]
+    cdef np.ndarray[np.float64_t, ndim=1] sub_z = z[index_vec]
     cdef double zSigmaz_S = np.dot(sub_z.T, np.dot(Sigma_S_inv, sub_z))
 
     cdef double b = normal_sigma_fixed_marginal_fun_indi(zSigmaz_S, tau, p_S, y_sigma)
@@ -30,7 +30,7 @@ cdef double ind_normal_sigma_fixed_marginal_fun_indi(double zSigmaz_S, double ta
     cdef double result = p_S / 2.0 * np.log(tau) - 0.5 * np.log(det_S) + (zSigmaz_S / 2.0)
     return result
 
-cpdef double ind_Normal_fixed_sigma_marginal(np.ndarray[np.uint32_t, ndim=1] index_vec_input,
+cpdef double ind_Normal_fixed_sigma_marginal(np.ndarray[np.int64_t, ndim=1] index_vec_input,
                                              np.ndarray[np.float64_t, ndim=2] Sigma,
                                              np.ndarray[np.float64_t, ndim=1] z,
                                              double tau, int p_S, double y_sigma):

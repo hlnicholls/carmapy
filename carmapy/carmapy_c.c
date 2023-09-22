@@ -2406,7 +2406,7 @@ static void __pyx_memoryview_refcount_objects_in_slice(char *, Py_ssize_t *, Py_
 static void __pyx_memoryview_slice_assign_scalar(__Pyx_memviewslice *, int, size_t, void *, int); /*proto*/
 static void __pyx_memoryview__slice_assign_scalar(char *, Py_ssize_t *, Py_ssize_t *, int, size_t, void *); /*proto*/
 static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *, PyObject *); /*proto*/
-static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_5numpy_uint32_t = { "uint32_t", NULL, sizeof(__pyx_t_5numpy_uint32_t), { 0 }, 0, IS_UNSIGNED(__pyx_t_5numpy_uint32_t) ? 'U' : 'I', IS_UNSIGNED(__pyx_t_5numpy_uint32_t), 0 };
+static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_5numpy_int64_t = { "int64_t", NULL, sizeof(__pyx_t_5numpy_int64_t), { 0 }, 0, IS_UNSIGNED(__pyx_t_5numpy_int64_t) ? 'U' : 'I', IS_UNSIGNED(__pyx_t_5numpy_int64_t), 0 };
 static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_5numpy_float64_t = { "float64_t", NULL, sizeof(__pyx_t_5numpy_float64_t), { 0 }, 0, 'R', 0, 0 };
 static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_5numpy_int32_t = { "int32_t", NULL, sizeof(__pyx_t_5numpy_int32_t), { 0 }, 0, IS_UNSIGNED(__pyx_t_5numpy_int32_t) ? 'U' : 'I', IS_UNSIGNED(__pyx_t_5numpy_int32_t), 0 };
 static __Pyx_TypeInfo __Pyx_TypeInfo_int = { "int", NULL, sizeof(int), { 0 }, 0, IS_UNSIGNED(int) ? 'U' : 'I', IS_UNSIGNED(int), 0 };
@@ -2811,7 +2811,7 @@ static double __pyx_f_7carmapy_9carmapy_c_normal_sigma_fixed_marginal_fun_indi(d
  *     cdef double result = p_S / 2.0 * log(tau / (1.0 + tau)) + (zSigmaz_S / (2 * y_sigma * (1.0 + tau)))
  *     return result             # <<<<<<<<<<<<<<
  * 
- * def Normal_fixed_sigma_marginal(np.ndarray[np.uint32_t, ndim=1] index_vec_input,
+ * def Normal_fixed_sigma_marginal(np.ndarray[np.int64_t, ndim=1] index_vec_input,
  */
   __pyx_r = __pyx_v_result;
   goto __pyx_L0;
@@ -2835,9 +2835,9 @@ static double __pyx_f_7carmapy_9carmapy_c_normal_sigma_fixed_marginal_fun_indi(d
 /* "carmapy/carmapy_c.pyx":11
  *     return result
  * 
- * def Normal_fixed_sigma_marginal(np.ndarray[np.uint32_t, ndim=1] index_vec_input,             # <<<<<<<<<<<<<<
+ * def Normal_fixed_sigma_marginal(np.ndarray[np.int64_t, ndim=1] index_vec_input,             # <<<<<<<<<<<<<<
  *                                 np.ndarray[np.float64_t, ndim=2] Sigma,
- *                                 np.ndarray[np.float64_t, ndim=2] z,
+ *                                 np.ndarray[np.float64_t, ndim=1] z,
  */
 
 /* Python wrapper */
@@ -3025,7 +3025,7 @@ static PyObject *__pyx_pf_7carmapy_9carmapy_c_Normal_fixed_sigma_marginal(CYTHON
   __pyx_pybuffernd_z.rcbuffer = &__pyx_pybuffer_z;
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer, (PyObject*)__pyx_v_index_vec_input, &__Pyx_TypeInfo_nn___pyx_t_5numpy_uint32_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 11, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer, (PyObject*)__pyx_v_index_vec_input, &__Pyx_TypeInfo_nn___pyx_t_5numpy_int64_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 11, __pyx_L1_error)
   }
   __pyx_pybuffernd_index_vec_input.diminfo[0].strides = __pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_index_vec_input.diminfo[0].shape = __pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer.shape[0];
   {
@@ -3035,20 +3035,20 @@ static PyObject *__pyx_pf_7carmapy_9carmapy_c_Normal_fixed_sigma_marginal(CYTHON
   __pyx_pybuffernd_Sigma.diminfo[0].strides = __pyx_pybuffernd_Sigma.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_Sigma.diminfo[0].shape = __pyx_pybuffernd_Sigma.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_Sigma.diminfo[1].strides = __pyx_pybuffernd_Sigma.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_Sigma.diminfo[1].shape = __pyx_pybuffernd_Sigma.rcbuffer->pybuffer.shape[1];
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_z.rcbuffer->pybuffer, (PyObject*)__pyx_v_z, &__Pyx_TypeInfo_nn___pyx_t_5numpy_float64_t, PyBUF_FORMAT| PyBUF_STRIDES, 2, 0, __pyx_stack) == -1)) __PYX_ERR(0, 11, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_z.rcbuffer->pybuffer, (PyObject*)__pyx_v_z, &__Pyx_TypeInfo_nn___pyx_t_5numpy_float64_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 11, __pyx_L1_error)
   }
-  __pyx_pybuffernd_z.diminfo[0].strides = __pyx_pybuffernd_z.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_z.diminfo[0].shape = __pyx_pybuffernd_z.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_z.diminfo[1].strides = __pyx_pybuffernd_z.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_z.diminfo[1].shape = __pyx_pybuffernd_z.rcbuffer->pybuffer.shape[1];
+  __pyx_pybuffernd_z.diminfo[0].strides = __pyx_pybuffernd_z.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_z.diminfo[0].shape = __pyx_pybuffernd_z.rcbuffer->pybuffer.shape[0];
 
   /* "carmapy/carmapy_c.pyx":17
  *                                 double p_S,
  *                                 double y_sigma):
- *     cdef np.ndarray[np.uint32_t, ndim=1] index_vec = index_vec_input             # <<<<<<<<<<<<<<
+ *     cdef np.ndarray[np.int64_t, ndim=1] index_vec = index_vec_input             # <<<<<<<<<<<<<<
  *     cdef np.ndarray[np.float64_t, ndim=2] Sigma_S = Sigma[np.ix_(index_vec, index_vec)]
  *     cdef np.ndarray[np.float64_t, ndim=2] Sigma_S_inv = np.linalg.pinv(Sigma_S, rcond=0.00001)
  */
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_index_vec.rcbuffer->pybuffer, (PyObject*)((PyArrayObject *)__pyx_v_index_vec_input), &__Pyx_TypeInfo_nn___pyx_t_5numpy_uint32_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) {
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_index_vec.rcbuffer->pybuffer, (PyObject*)((PyArrayObject *)__pyx_v_index_vec_input), &__Pyx_TypeInfo_nn___pyx_t_5numpy_int64_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) {
       __pyx_v_index_vec = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_index_vec.rcbuffer->pybuffer.buf = NULL;
       __PYX_ERR(0, 17, __pyx_L1_error)
     } else {__pyx_pybuffernd_index_vec.diminfo[0].strides = __pyx_pybuffernd_index_vec.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_index_vec.diminfo[0].shape = __pyx_pybuffernd_index_vec.rcbuffer->pybuffer.shape[0];
@@ -3059,10 +3059,10 @@ static PyObject *__pyx_pf_7carmapy_9carmapy_c_Normal_fixed_sigma_marginal(CYTHON
 
   /* "carmapy/carmapy_c.pyx":18
  *                                 double y_sigma):
- *     cdef np.ndarray[np.uint32_t, ndim=1] index_vec = index_vec_input
+ *     cdef np.ndarray[np.int64_t, ndim=1] index_vec = index_vec_input
  *     cdef np.ndarray[np.float64_t, ndim=2] Sigma_S = Sigma[np.ix_(index_vec, index_vec)]             # <<<<<<<<<<<<<<
  *     cdef np.ndarray[np.float64_t, ndim=2] Sigma_S_inv = np.linalg.pinv(Sigma_S, rcond=0.00001)
- *     cdef np.ndarray[np.float64_t, ndim=2] sub_z = z[index_vec]
+ *     cdef np.ndarray[np.float64_t, ndim=1] sub_z = z[index_vec]
  */
   __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 18, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -3132,10 +3132,10 @@ static PyObject *__pyx_pf_7carmapy_9carmapy_c_Normal_fixed_sigma_marginal(CYTHON
   __pyx_t_3 = 0;
 
   /* "carmapy/carmapy_c.pyx":19
- *     cdef np.ndarray[np.uint32_t, ndim=1] index_vec = index_vec_input
+ *     cdef np.ndarray[np.int64_t, ndim=1] index_vec = index_vec_input
  *     cdef np.ndarray[np.float64_t, ndim=2] Sigma_S = Sigma[np.ix_(index_vec, index_vec)]
  *     cdef np.ndarray[np.float64_t, ndim=2] Sigma_S_inv = np.linalg.pinv(Sigma_S, rcond=0.00001)             # <<<<<<<<<<<<<<
- *     cdef np.ndarray[np.float64_t, ndim=2] sub_z = z[index_vec]
+ *     cdef np.ndarray[np.float64_t, ndim=1] sub_z = z[index_vec]
  *     cdef double zSigmaz_S = np.dot(sub_z.T, np.dot(Sigma_S_inv, sub_z))
  */
   __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 19, __pyx_L1_error)
@@ -3176,7 +3176,7 @@ static PyObject *__pyx_pf_7carmapy_9carmapy_c_Normal_fixed_sigma_marginal(CYTHON
   /* "carmapy/carmapy_c.pyx":20
  *     cdef np.ndarray[np.float64_t, ndim=2] Sigma_S = Sigma[np.ix_(index_vec, index_vec)]
  *     cdef np.ndarray[np.float64_t, ndim=2] Sigma_S_inv = np.linalg.pinv(Sigma_S, rcond=0.00001)
- *     cdef np.ndarray[np.float64_t, ndim=2] sub_z = z[index_vec]             # <<<<<<<<<<<<<<
+ *     cdef np.ndarray[np.float64_t, ndim=1] sub_z = z[index_vec]             # <<<<<<<<<<<<<<
  *     cdef double zSigmaz_S = np.dot(sub_z.T, np.dot(Sigma_S_inv, sub_z))
  * 
  */
@@ -3186,10 +3186,10 @@ static PyObject *__pyx_pf_7carmapy_9carmapy_c_Normal_fixed_sigma_marginal(CYTHON
   __pyx_t_8 = ((PyArrayObject *)__pyx_t_2);
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_sub_z.rcbuffer->pybuffer, (PyObject*)__pyx_t_8, &__Pyx_TypeInfo_nn___pyx_t_5numpy_float64_t, PyBUF_FORMAT| PyBUF_STRIDES, 2, 0, __pyx_stack) == -1)) {
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_sub_z.rcbuffer->pybuffer, (PyObject*)__pyx_t_8, &__Pyx_TypeInfo_nn___pyx_t_5numpy_float64_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) {
       __pyx_v_sub_z = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_sub_z.rcbuffer->pybuffer.buf = NULL;
       __PYX_ERR(0, 20, __pyx_L1_error)
-    } else {__pyx_pybuffernd_sub_z.diminfo[0].strides = __pyx_pybuffernd_sub_z.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_sub_z.diminfo[0].shape = __pyx_pybuffernd_sub_z.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_sub_z.diminfo[1].strides = __pyx_pybuffernd_sub_z.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_sub_z.diminfo[1].shape = __pyx_pybuffernd_sub_z.rcbuffer->pybuffer.shape[1];
+    } else {__pyx_pybuffernd_sub_z.diminfo[0].strides = __pyx_pybuffernd_sub_z.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_sub_z.diminfo[0].shape = __pyx_pybuffernd_sub_z.rcbuffer->pybuffer.shape[0];
     }
   }
   __pyx_t_8 = 0;
@@ -3198,7 +3198,7 @@ static PyObject *__pyx_pf_7carmapy_9carmapy_c_Normal_fixed_sigma_marginal(CYTHON
 
   /* "carmapy/carmapy_c.pyx":21
  *     cdef np.ndarray[np.float64_t, ndim=2] Sigma_S_inv = np.linalg.pinv(Sigma_S, rcond=0.00001)
- *     cdef np.ndarray[np.float64_t, ndim=2] sub_z = z[index_vec]
+ *     cdef np.ndarray[np.float64_t, ndim=1] sub_z = z[index_vec]
  *     cdef double zSigmaz_S = np.dot(sub_z.T, np.dot(Sigma_S_inv, sub_z))             # <<<<<<<<<<<<<<
  * 
  *     cdef double b = normal_sigma_fixed_marginal_fun_indi(zSigmaz_S, tau, p_S, y_sigma)
@@ -3339,9 +3339,9 @@ static PyObject *__pyx_pf_7carmapy_9carmapy_c_Normal_fixed_sigma_marginal(CYTHON
   /* "carmapy/carmapy_c.pyx":11
  *     return result
  * 
- * def Normal_fixed_sigma_marginal(np.ndarray[np.uint32_t, ndim=1] index_vec_input,             # <<<<<<<<<<<<<<
+ * def Normal_fixed_sigma_marginal(np.ndarray[np.int64_t, ndim=1] index_vec_input,             # <<<<<<<<<<<<<<
  *                                 np.ndarray[np.float64_t, ndim=2] Sigma,
- *                                 np.ndarray[np.float64_t, ndim=2] z,
+ *                                 np.ndarray[np.float64_t, ndim=1] z,
  */
 
   /* function exit code */
@@ -3490,7 +3490,7 @@ static double __pyx_f_7carmapy_9carmapy_c_ind_normal_sigma_fixed_marginal_fun_in
  *     cdef double result = p_S / 2.0 * np.log(tau) - 0.5 * np.log(det_S) + (zSigmaz_S / 2.0)
  *     return result             # <<<<<<<<<<<<<<
  * 
- * cpdef double ind_Normal_fixed_sigma_marginal(np.ndarray[np.uint32_t, ndim=1] index_vec_input,
+ * cpdef double ind_Normal_fixed_sigma_marginal(np.ndarray[np.int64_t, ndim=1] index_vec_input,
  */
   __pyx_r = __pyx_v_result;
   goto __pyx_L0;
@@ -3520,7 +3520,7 @@ static double __pyx_f_7carmapy_9carmapy_c_ind_normal_sigma_fixed_marginal_fun_in
 /* "carmapy/carmapy_c.pyx":33
  *     return result
  * 
- * cpdef double ind_Normal_fixed_sigma_marginal(np.ndarray[np.uint32_t, ndim=1] index_vec_input,             # <<<<<<<<<<<<<<
+ * cpdef double ind_Normal_fixed_sigma_marginal(np.ndarray[np.int64_t, ndim=1] index_vec_input,             # <<<<<<<<<<<<<<
  *                                              np.ndarray[np.float64_t, ndim=2] Sigma,
  *                                              np.ndarray[np.float64_t, ndim=1] z,
  */
@@ -3569,8 +3569,8 @@ static double __pyx_f_7carmapy_9carmapy_c_ind_Normal_fixed_sigma_marginal(PyArra
   Py_ssize_t __pyx_t_13;
   int __pyx_t_14;
   Py_ssize_t __pyx_t_15;
-  size_t __pyx_t_16;
-  size_t __pyx_t_17;
+  __pyx_t_5numpy_int64_t __pyx_t_16;
+  __pyx_t_5numpy_int64_t __pyx_t_17;
   Py_ssize_t __pyx_t_18;
   Py_ssize_t __pyx_t_19;
   PyObject *__pyx_t_20 = NULL;
@@ -3613,7 +3613,7 @@ static double __pyx_f_7carmapy_9carmapy_c_ind_Normal_fixed_sigma_marginal(PyArra
   __pyx_pybuffernd_z.rcbuffer = &__pyx_pybuffer_z;
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer, (PyObject*)__pyx_v_index_vec_input, &__Pyx_TypeInfo_nn___pyx_t_5numpy_uint32_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 33, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer, (PyObject*)__pyx_v_index_vec_input, &__Pyx_TypeInfo_nn___pyx_t_5numpy_int64_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 33, __pyx_L1_error)
   }
   __pyx_pybuffernd_index_vec_input.diminfo[0].strides = __pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_index_vec_input.diminfo[0].shape = __pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer.shape[0];
   {
@@ -3753,11 +3753,17 @@ static double __pyx_f_7carmapy_9carmapy_c_ind_Normal_fixed_sigma_marginal(PyArra
         __Pyx_RaiseBufferIndexError(__pyx_t_14);
         __PYX_ERR(0, 43, __pyx_L1_error)
       }
-      __pyx_t_16 = (*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_uint32_t *, __pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer.buf, __pyx_t_13, __pyx_pybuffernd_index_vec_input.diminfo[0].strides));
-      __pyx_t_17 = (*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_uint32_t *, __pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer.buf, __pyx_t_15, __pyx_pybuffernd_index_vec_input.diminfo[0].strides));
+      __pyx_t_16 = (*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int64_t *, __pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer.buf, __pyx_t_13, __pyx_pybuffernd_index_vec_input.diminfo[0].strides));
+      __pyx_t_17 = (*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int64_t *, __pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer.buf, __pyx_t_15, __pyx_pybuffernd_index_vec_input.diminfo[0].strides));
       __pyx_t_14 = -1;
-      if (unlikely(__pyx_t_16 >= (size_t)__pyx_pybuffernd_Sigma.diminfo[0].shape)) __pyx_t_14 = 0;
-      if (unlikely(__pyx_t_17 >= (size_t)__pyx_pybuffernd_Sigma.diminfo[1].shape)) __pyx_t_14 = 1;
+      if (__pyx_t_16 < 0) {
+        __pyx_t_16 += __pyx_pybuffernd_Sigma.diminfo[0].shape;
+        if (unlikely(__pyx_t_16 < 0)) __pyx_t_14 = 0;
+      } else if (unlikely(__pyx_t_16 >= __pyx_pybuffernd_Sigma.diminfo[0].shape)) __pyx_t_14 = 0;
+      if (__pyx_t_17 < 0) {
+        __pyx_t_17 += __pyx_pybuffernd_Sigma.diminfo[1].shape;
+        if (unlikely(__pyx_t_17 < 0)) __pyx_t_14 = 1;
+      } else if (unlikely(__pyx_t_17 >= __pyx_pybuffernd_Sigma.diminfo[1].shape)) __pyx_t_14 = 1;
       if (unlikely(__pyx_t_14 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_14);
         __PYX_ERR(0, 43, __pyx_L1_error)
@@ -3957,9 +3963,12 @@ static double __pyx_f_7carmapy_9carmapy_c_ind_Normal_fixed_sigma_marginal(PyArra
       __Pyx_RaiseBufferIndexError(__pyx_t_10);
       __PYX_ERR(0, 50, __pyx_L1_error)
     }
-    __pyx_t_17 = (*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_uint32_t *, __pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer.buf, __pyx_t_15, __pyx_pybuffernd_index_vec_input.diminfo[0].strides));
+    __pyx_t_17 = (*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int64_t *, __pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer.buf, __pyx_t_15, __pyx_pybuffernd_index_vec_input.diminfo[0].strides));
     __pyx_t_10 = -1;
-    if (unlikely(__pyx_t_17 >= (size_t)__pyx_pybuffernd_z.diminfo[0].shape)) __pyx_t_10 = 0;
+    if (__pyx_t_17 < 0) {
+      __pyx_t_17 += __pyx_pybuffernd_z.diminfo[0].shape;
+      if (unlikely(__pyx_t_17 < 0)) __pyx_t_10 = 0;
+    } else if (unlikely(__pyx_t_17 >= __pyx_pybuffernd_z.diminfo[0].shape)) __pyx_t_10 = 0;
     if (unlikely(__pyx_t_10 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_10);
       __PYX_ERR(0, 50, __pyx_L1_error)
@@ -4153,7 +4162,7 @@ static double __pyx_f_7carmapy_9carmapy_c_ind_Normal_fixed_sigma_marginal(PyArra
   /* "carmapy/carmapy_c.pyx":33
  *     return result
  * 
- * cpdef double ind_Normal_fixed_sigma_marginal(np.ndarray[np.uint32_t, ndim=1] index_vec_input,             # <<<<<<<<<<<<<<
+ * cpdef double ind_Normal_fixed_sigma_marginal(np.ndarray[np.int64_t, ndim=1] index_vec_input,             # <<<<<<<<<<<<<<
  *                                              np.ndarray[np.float64_t, ndim=2] Sigma,
  *                                              np.ndarray[np.float64_t, ndim=1] z,
  */
@@ -4342,7 +4351,7 @@ static PyObject *__pyx_pf_7carmapy_9carmapy_c_2ind_Normal_fixed_sigma_marginal(C
   __pyx_pybuffernd_z.rcbuffer = &__pyx_pybuffer_z;
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer, (PyObject*)__pyx_v_index_vec_input, &__Pyx_TypeInfo_nn___pyx_t_5numpy_uint32_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 33, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer, (PyObject*)__pyx_v_index_vec_input, &__Pyx_TypeInfo_nn___pyx_t_5numpy_int64_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 33, __pyx_L1_error)
   }
   __pyx_pybuffernd_index_vec_input.diminfo[0].strides = __pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_index_vec_input.diminfo[0].shape = __pyx_pybuffernd_index_vec_input.rcbuffer->pybuffer.shape[0];
   {
@@ -22089,9 +22098,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "carmapy/carmapy_c.pyx":11
  *     return result
  * 
- * def Normal_fixed_sigma_marginal(np.ndarray[np.uint32_t, ndim=1] index_vec_input,             # <<<<<<<<<<<<<<
+ * def Normal_fixed_sigma_marginal(np.ndarray[np.int64_t, ndim=1] index_vec_input,             # <<<<<<<<<<<<<<
  *                                 np.ndarray[np.float64_t, ndim=2] Sigma,
- *                                 np.ndarray[np.float64_t, ndim=2] z,
+ *                                 np.ndarray[np.float64_t, ndim=1] z,
  */
   __pyx_tuple__22 = PyTuple_Pack(12, __pyx_n_s_index_vec_input, __pyx_n_s_Sigma, __pyx_n_s_z, __pyx_n_s_tau, __pyx_n_s_p_S, __pyx_n_s_y_sigma, __pyx_n_s_index_vec, __pyx_n_s_Sigma_S, __pyx_n_s_Sigma_S_inv, __pyx_n_s_sub_z, __pyx_n_s_zSigmaz_S, __pyx_n_s_b); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__22);
@@ -22566,9 +22575,9 @@ if (!__Pyx_RefNanny) {
   /* "carmapy/carmapy_c.pyx":11
  *     return result
  * 
- * def Normal_fixed_sigma_marginal(np.ndarray[np.uint32_t, ndim=1] index_vec_input,             # <<<<<<<<<<<<<<
+ * def Normal_fixed_sigma_marginal(np.ndarray[np.int64_t, ndim=1] index_vec_input,             # <<<<<<<<<<<<<<
  *                                 np.ndarray[np.float64_t, ndim=2] Sigma,
- *                                 np.ndarray[np.float64_t, ndim=2] z,
+ *                                 np.ndarray[np.float64_t, ndim=1] z,
  */
   __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_7carmapy_9carmapy_c_1Normal_fixed_sigma_marginal, NULL, __pyx_n_s_carmapy_carmapy_c); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
