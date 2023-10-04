@@ -113,17 +113,18 @@ def CARMA_fixed_sigma(
     # Running CARMA
     delete_list = []
 
-    for g in range(1, all_iter + 1):
+    for g in range(all_iter):
         if outlier_switch:
             delete_list = []
-            for i in range(1, L + 1):
+            for i in range(L):
                 delete_list.append([])
-                if len(all_C_list[i - 1][4]) != 0:
-                    temp_delete_list = all_C_list[i - 1][4]["Index"]
-                    delete_list[i - 1] = temp_delete_list
+                if len(all_C_list[i][4]) != 0:
+                    temp_delete_list = all_C_list[i][4]["Index"]
+                    delete_list[i] = temp_delete_list
         else:
             delete_list = []
-            for i in range(1, L + 1):
+            for i in range(L):
+                # TODO: check this line, it is not clear what it is doing
                 delete_list.append([])
 
     # If the list of annotations is non-empty, then the PIPs and functional annotations at all loci are aggregated for the M-step of the EM algorithm
@@ -132,18 +133,18 @@ def CARMA_fixed_sigma(
     if w_list is not None:
         w = np.empty((0, w_list[0].shape[1]))
         w_columns = list(w_list[0].columns)
-        for i in range(1, L + 1):
-            if len(delete_list[i - 1]) != 0:
-                w = np.vstack((w, w_list[i - 1].drop(delete_list[i - 1]).values))
+        for i in range(L):
+            if len(delete_list[i]) != 0:
+                w = np.vstack((w, w_list[i].drop(delete_list[i]).values))
             else:
-                w = np.vstack((w, w_list[i - 1].values))
+                w = np.vstack((w, w_list[i].values))
 
     for i in range(1, L + 1):
         previous_result.append(
             np.mean(
-                all_C_list[i - 1][0][0][0][
+                all_C_list[i][0][0][0][
                     0 : round(
-                        np.quantile(range(1, len(all_C_list[i - 1][0][0][0])), 0.25)
+                        np.quantile(range(1, len(all_C_list[i][0][0][0])), 0.25)
                     )
                 ]
             )
@@ -153,38 +154,38 @@ def CARMA_fixed_sigma(
     if w_list is not None and EM_dist == "Poisson":
         if not standardize_model_space:
             model_space_count = []
-            for i in range(1, L + 1):
-                if len(delete_list[i - 1]) != 0:
+            for i in range(L):
+                if len(delete_list[i]) != 0:
                     model_space_count.extend(
                         np.sum(
-                            all_C_list[i - 1][0][0][1][
+                            all_C_list[i][0][0][1][
                                 :,
                                 ~np.isin(
-                                    all_C_list[i - 1][0][0][4], delete_list[i - 1]
+                                    all_C_list[i][0][0][4], delete_list[i]
                                 ),
                             ],
                             axis=0,
                         )
                     )
                 else:
-                    model_space_count.extend(np.sum(all_C_list[i - 1][0][0][1], axis=0))
+                    model_space_count.extend(np.sum(all_C_list[i][0][0][1], axis=0))
         else:
             model_space_count = []
-            for i in range(1, L + 1):
-                if len(delete_list[i - 1]) != 0:
+            for i in range(L):
+                if len(delete_list[i]) != 0:
                     indi_count = np.sum(
-                        all_C_list[i - 1][0][0][1][
-                            :, ~np.isin(all_C_list[i - 1][0][0][4], delete_list[i - 1])
+                        all_C_list[i][0][0][1][
+                            :, ~np.isin(all_C_list[i][0][0][4], delete_list[i])
                         ],
                         axis=0,
                     )
                     indi_count = np.floor(
-                        indi_count / all_C_list[i - 1][0][0][1].shape[0] * Max_Model_Dim
+                        indi_count / all_C_list[i][0][0][1].shape[0] * Max_Model_Dim
                     )
                 else:
-                    indi_count = np.sum(all_C_list[i - 1][0][0][1], axis=0)
+                    indi_count = np.sum(all_C_list[i][0][0][1], axis=0)
                     indi_count = np.floor(
-                        indi_count / all_C_list[i - 1][0][0][1].shape[0] * Max_Model_Dim
+                        indi_count / all_C_list[i][0][0][1].shape[0] * Max_Model_Dim
                     )
                 model_space_count.extend(indi_count)
 
@@ -193,13 +194,13 @@ def CARMA_fixed_sigma(
     # The M step of the EM algorithm
     if EM_dist == "Logistic":
         M_step_response = []
-        for i in range(1, L + 1):
-            if len(delete_list[i - 1]) != 0:
-                indi_pip = all_C_list[i - 1][0][0][2][
-                    ~np.isin(all_C_list[i - 1][0][0][4], delete_list[i - 1])
+        for i in range(L):
+            if len(delete_list[i]) != 0:
+                indi_pip = all_C_list[i][0][0][2][
+                    ~np.isin(all_C_list[i][0][0][4], delete_list[i])
                 ]
             else:
-                indi_pip = all_C_list[i - 1][0][0][2]
+                indi_pip = all_C_list[i][0][0][2]
             M_step_response.extend(indi_pip)
 
     try:
@@ -211,26 +212,26 @@ def CARMA_fixed_sigma(
         )
         prior_prob_list = []
 
-        for i in range(1, L + 1):
+        for i in range(L):
             if prior_prob_computation == "Intercept.approx":
                 glm_beta[0] = np.log(
-                    (min(Max_Model_Dim, all_C_list[i - 1][0][0][1].shape[0]))
-                    * lambda_list[i - 1]
-                    / (lambda_list[i - 1] + p_list[i - 1])
+                    (min(Max_Model_Dim, all_C_list[i][0][0][1].shape[0]))
+                    * lambda_list[i]
+                    / (lambda_list[i] + p_list[i])
                 )
                 prior_prob_list.append(
-                    np.exp(np.dot(w_list[i - 1], glm_beta))
-                    / (1 + np.max(np.exp(np.dot(w_list[i - 1], glm_beta))))[
-                        0 : min(Max_Model_Dim, all_C_list[i - 1][0][0][1].shape[0])
+                    np.exp(np.dot(w_list[i], glm_beta))
+                    / (1 + np.max(np.exp(np.dot(w_list[i], glm_beta))))[
+                        0 : min(Max_Model_Dim, all_C_list[i][0][0][1].shape[0])
                     ]
                 )
-                print(np.sort(prior_prob_list[i - 1], decreasing=True)[0:10])
+                print(np.sort(prior_prob_list[i], decreasing=True)[0:10])
             if prior_prob_computation == "Logistic":
-                prior_prob_list.append(np.logistic(np.dot(w_list[i - 1], glm_beta)))
-                print(np.sort(prior_prob_list[i - 1], decreasing=True)[0:10])
+                prior_prob_list.append(np.logistic(np.dot(w_list[i], glm_beta)))
+                print(np.sort(prior_prob_list[i], decreasing=True)[0:10])
             if output_labels is not None:
                 np.savetxt(
-                    f"{output_labels}/post_{label_list[i-1]}_theta.txt",
+                    f"{output_labels}/post_{label_list[i]}_theta.txt",
                     glm_beta,
                     delimiter=",",
                     fmt="%.6f",
@@ -243,16 +244,17 @@ def CARMA_fixed_sigma(
         # Fine-mapping step for each locus, i.e., the E-step in the EM algorithm
         for i in range(L):
             t0 = time.time()
-            all_C_list[i - 1] = module_cauchy_shotgun(
+            # Here Hannah used i - 1, but I think it should be i
+            all_C_list[i] = module_cauchy_shotgun(
                 z_array,
                 ld_matrix,
-                input_conditional_S_list=all_C_list[i - 1][0][0][3],
+                input_conditional_S_list=all_C_list[i][0][0][3],
                 Max_Model_Dim=Max_Model_Dim,
                 y_var=y_var,
                 num_causal=num_causal,
                 epsilon=epsilon_list,
-                C_list=all_C_list[i - 1][0][0][1],
-                prior_prob=prior_prob_list[i - 1],
+                C_list=all_C_list[i][0][0][1],
+                prior_prob=prior_prob_list[i],
                 outlier_switch=outlier_switch,
                 tau=tau,
                 label=label_list,
@@ -266,16 +268,16 @@ def CARMA_fixed_sigma(
             print(t1)
 
         difference = 0
-        for i in range(1, L + 1):
+        for i in range(L):
             difference += np.sum(
                 np.abs(
-                    previous_result[i - 1]
+                    previous_result[i]
                     - np.mean(
                         all_C_list[i][0][0][0][
                             0 : round(
                                 np.percentile(
                                     np.arange(
-                                        1, len(all_C_list[i - 1][0][0][0][0]) + 1
+                                        1, len(all_C_list[i][0][0][0][0]) + 1
                                     ),
                                     probs=0.25,
                                 )
@@ -290,18 +292,18 @@ def CARMA_fixed_sigma(
 
     # Output of the results of CARMA
     results_list = []
-    for i in range(1, L + 1):
+    for i in range(L):
         results_list.append({})
-        pip = all_C_list[i - 1][0][0][2]
-        credible_set = credible_set_fun_improved(pip, ld_matrix[i - 1], rho=rho_index)
+        pip = all_C_list[i][0][0][2]
+        credible_set = credible_set_fun_improved(pip, ld_matrix[i], rho=rho_index)
         credible_model = credible_model_fun(
-            all_C_list[i - 1][0][0][0][0],
-            all_C_list[i - 1][0][0][0][1],
+            all_C_list[i][0][0][0][0],
+            all_C_list[i][0][0][0][1],
             bayes_threshold=BF_index,
         )
-        results_list[i - 1]["PIPs"] = pip
-        results_list[i - 1]["Credible set"] = credible_set
-        results_list[i - 1]["Credible model"] = credible_model
-        results_list[i - 1]["Outliers"] = all_C_list[i - 1][0][0]
+        results_list[i]["PIPs"] = pip
+        results_list[i]["Credible set"] = credible_set
+        results_list[i]["Credible model"] = credible_model
+        results_list[i]["Outliers"] = all_C_list[i][0][0]
 
     return results_list
