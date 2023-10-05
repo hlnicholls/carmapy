@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.sparse import csr_matrix
 import time
 
 from carmapy.carma_normal_fixed_sigma_utils import *
@@ -56,12 +57,13 @@ def CARMA_fixed_sigma(
 
     np.seterr(divide="ignore", invalid="ignore")
     L = 1
-    assert L == len(z_list), "z_list needs to be a list of 1 np array"
-    z_array = np.array(z_list[0])
     z_list = [np.asmatrix(z_list[0]).T]
-    p = len(z_list)  # needs to be 1
+    p = len(z_list[0])  # needs to be 481
+    p_list = [p]
+    assert L == len(z_list), "z_list needs to be a list of 1 array"
+    assert z_list[0].shape[1] == 1, f"z_list needs to be a list of 1 array of shape (loci, 1), got {z_list[0].shape[1]} instead"
+    assert ld_matrix.shape == (p, p), f"ld_matrix needs to be a matrix of size (n_snps, n_snps), got {ld_matrix.shape} instead"
     log_2pi = np.log(2 * np.pi)
-    p_list = [len(z_array)]  # needs to be 481
     B = Max_Model_Dim
     all_B_list = [
         [np.zeros(0, dtype=int), csr_matrix((0, p_list[i]), dtype=int)]
@@ -77,9 +79,10 @@ def CARMA_fixed_sigma(
         [np.zeros(0, dtype=int), csr_matrix((0, p_list[i]), dtype=int)]
         for i in range(L)
     ]
-    print("all C list setup:", all_C_list[0].shape)
     all_epsilon_threshold = 0
-    epsilon_list = [epsilon_threshold * p_list[i] for i in range(L)]
+    epsilon_list = [
+        epsilon_threshold * p_list[i] for i in range(L)
+    ]  # TODO: confirm that epsilon_list == epsilon_threshold
     all_epsilon_threshold = sum(
         epsilon_list
     )  # i am summing, but the list is one number
@@ -93,8 +96,9 @@ def CARMA_fixed_sigma(
     all_C_list = []
     all_C_list.append(
         module_cauchy_shotgun(
-            z_array,
+            z_list[0],
             ld_matrix,
+            lambda_val=1,
             epsilon=epsilon_list,
             input_S=None,
             Max_Model_Dim=Max_Model_Dim,
@@ -143,9 +147,7 @@ def CARMA_fixed_sigma(
         previous_result.append(
             np.mean(
                 all_C_list[i][0][0][0][
-                    0 : round(
-                        np.quantile(range(1, len(all_C_list[i][0][0][0])), 0.25)
-                    )
+                    0 : round(np.quantile(range(1, len(all_C_list[i][0][0][0])), 0.25))
                 ]
             )
         )
@@ -160,9 +162,7 @@ def CARMA_fixed_sigma(
                         np.sum(
                             all_C_list[i][0][0][1][
                                 :,
-                                ~np.isin(
-                                    all_C_list[i][0][0][4], delete_list[i]
-                                ),
+                                ~np.isin(all_C_list[i][0][0][4], delete_list[i]),
                             ],
                             axis=0,
                         )
@@ -225,10 +225,8 @@ def CARMA_fixed_sigma(
                         0 : min(Max_Model_Dim, all_C_list[i][0][0][1].shape[0])
                     ]
                 )
-                print(np.sort(prior_prob_list[i], decreasing=True)[0:10])
             if prior_prob_computation == "Logistic":
                 prior_prob_list.append(np.logistic(np.dot(w_list[i], glm_beta)))
-                print(np.sort(prior_prob_list[i], decreasing=True)[0:10])
             if output_labels is not None:
                 np.savetxt(
                     f"{output_labels}/post_{label_list[i]}_theta.txt",
@@ -248,6 +246,7 @@ def CARMA_fixed_sigma(
             all_C_list[i] = module_cauchy_shotgun(
                 z_array,
                 ld_matrix,
+                lambda_val=1,
                 input_conditional_S_list=all_C_list[i][0][0][3],
                 Max_Model_Dim=Max_Model_Dim,
                 y_var=y_var,
@@ -264,8 +263,7 @@ def CARMA_fixed_sigma(
                 inner_all_iter=all_inner_iter,
             )
             t1 = time.time() - t0
-            print(f"This is locus {i} computing time")
-            print(t1)
+            print(f"This is locus {i} computing time: ", t1)
 
         difference = 0
         for i in range(L):
@@ -276,9 +274,7 @@ def CARMA_fixed_sigma(
                         all_C_list[i][0][0][0][
                             0 : round(
                                 np.percentile(
-                                    np.arange(
-                                        1, len(all_C_list[i][0][0][0][0]) + 1
-                                    ),
+                                    np.arange(1, len(all_C_list[i][0][0][0][0]) + 1),
                                     probs=0.25,
                                 )
                             )
