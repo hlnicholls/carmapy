@@ -326,9 +326,9 @@ def module_cauchy_shotgun(
             S = conditional_S
 
         # Compute posterior inclusion probability based on the marginal likelihood and model space
-
+        print("INNER ALL ITER", inner_all_iter)
         for l in range(inner_all_iter):
-            print("module_cauchy_shotgun outermost for loop iteration:", l)
+            print("inner_all_iter loop iteration:", l)
             for h in range(10):
                 # Shotgun COMPUTATION
                 # set_gamma - Model configurations for calculating marginal likelihood
@@ -360,7 +360,7 @@ def module_cauchy_shotgun(
                 matrix_gamma = [[], [], []]
 
                 if len(working_S) != 0:
-                    print("working_S != 0")
+                    print("working_S != 0", len(working_S))
                     S_model = csr_matrix(([1], ([0], [working_S[0] - 1])), shape=(1, p))
                     p_S = len(working_S)
                     working_S = np.concatenate(
@@ -376,7 +376,7 @@ def module_cauchy_shotgun(
                 print("current_log_margin when S!=0:", current_log_margin)
 
                 if len(working_S) > 1:
-                    print("working_S > 1")
+                    print("working_S > 1", len(working_S))
                     for i in range(len(set_gamma)):
                         t0 = time.time()
                         matrix_gamma.append(index_fun(set_gamma[i]))
@@ -468,7 +468,7 @@ def module_cauchy_shotgun(
                             add_B[1] = vstack((add_B[1], matrix_gamma[i]))
 
                 if len(working_S) == 1:
-                    print("working_S == 1")
+                    print("working_S == 1", len(working_S))
                     set_gamma_margin = null_margin
                     matrix_gamma[0] = null_model
 
@@ -568,6 +568,7 @@ def module_cauchy_shotgun(
                             add_B[1] = csr_matrix(vstack((add_B[1], matrix_gamma[i])))
 
                 if len(working_S) == 0:
+                    print("working_S == 0", len(working_S))
                     for i in [1]:
                         matrix_gamma[i] = index_fun(set_gamma[i])
                         col_num = len(set_gamma[i])
@@ -590,6 +591,10 @@ def module_cauchy_shotgun(
 
                         computed_index = np.array(computed_index)
                         p_S = len(set_gamma) - 2
+                        print("SET GAMMA")
+                        for i in range(len(set_gamma)):
+                            print("ELEMENT OF SET GAMMA", i)
+                            print(set_gamma[i])
                         if np.sum(~np.isnan(computed_index)) == 0:
                             set_gamma_margin.append(
                                 np.apply_along_axis(
@@ -964,51 +969,14 @@ def beta_binomial_dist(t):
 
 ### Function to define the neighbourhood model space
 def set_gamma_func(input_S=None, condition_index=None, p=None):
-    """Defines the neighborhood model space by setting gamma functions based on the input set.
-    - This function computes three different sets of gamma functions representing various combinations and concatenations of elements from S.
-    - The resulting structure provides a way to explore different possibilities within the neighborhood model space.
-    """
+    """Defines the neighborhood model space by setting gamma functions based on the input set."""
 
-    def set_gamma_func_base(S):
-        """Computes the gamma sets for a given set (S), defining a specific aspect of the neighborhood model space."""
+    def add_function(y, S_sub):
+        """Concatenates and sorts the input value y with each element in the S_sub array."""
+        results = [np.sort([x] + y) for x in S_sub]
+        return np.array(results)
 
-        def add_function(y):
-            """Concatenates and sorts the input value y with each element in the S array."""
-            results = [np.sort([x] + y) for x in S_sub]
-            return np.array(results)
-
-        set_gamma = [[], [], []]
-
-        if len(S) == 0:
-            S_sub = [i for i in range(p)]
-            set_gamma[1] = [S + [x] for x in S_sub]
-        elif len(S) == 1:
-            S_sub = [i for i in range(p) if i not in S]
-            set_gamma[0] = [list(comb) for comb in combinations(S, len(S) - 1)]
-            set_gamma[1] = [sorted([x] + S) for x in S_sub]
-            set_gamma[2] = add_function(set_gamma[0][0]).reshape(1, -1)
-        else:
-            S_sub = [i for i in range(p) if i not in S]
-            set_gamma[0] = (
-                [sorted(list(comb)) for comb in combinations(S, len(S) - 1)]
-                if len(S) > 2
-                else [list(comb) for comb in combinations(S, len(S) - 1)]
-            )
-            set_gamma[1] = [sorted([x] + S) for x in S_sub]
-            set_gamma[2] = add_function(set_gamma[0][0])
-            for i in range(1, len(set_gamma[0])):
-                set_gamma[2] = np.vstack((set_gamma[2], add_function(set_gamma[0][i])))
-        return set_gamma
-
-    def set_gamma_func_conditional(input_S, condition_index):
-        """Computes the gamma sets for an input set with a conditional index, defining a specific aspect of the gamma function/model space neighborhood."""
-
-        def add_function(y):
-            results = [np.sort([x] + y) for x in S_sub]
-            return np.array(results)
-
-        S = [i for i in input_S if i != condition_index]
-        S_sub = [i for i in range(p) if i not in input_S]
+    def compute_gamma_sets(S, S_sub):
         set_gamma = [[], [], []]
 
         if len(S) == 0:
@@ -1016,26 +984,23 @@ def set_gamma_func(input_S=None, condition_index=None, p=None):
         elif len(S) == 1:
             set_gamma[0] = [list(comb) for comb in combinations(S, len(S) - 1)]
             set_gamma[1] = [sorted([x] + S) for x in S_sub]
-            set_gamma[2] = add_function(set_gamma[0][0]).reshape(1, -1)
+            set_gamma[2] = add_function(set_gamma[0][0], S_sub).reshape(1, -1)
         else:
-            set_gamma[0] = (
-                [sorted(list(comb)) for comb in combinations(S, len(S) - 1)]
-                if len(S) > 2
-                else [list(comb) for comb in combinations(S, len(S) - 1)]
-            )
+            set_gamma[0] = [
+                sorted(list(comb)) if len(S) > 2 else list(comb) for comb in combinations(S, len(S) - 1)
+            ]
             set_gamma[1] = [sorted([x] + S) for x in S_sub]
-            set_gamma[2] = add_function(set_gamma[0][0])
+            set_gamma[2] = add_function(set_gamma[0][0], S_sub)
             for i in range(1, len(set_gamma[0])):
-                set_gamma[2] = np.vstack((set_gamma[2], add_function(set_gamma[0][i])))
+                set_gamma[2] = np.vstack((set_gamma[2], add_function(set_gamma[0][i], S_sub)))
         return set_gamma
 
-    if condition_index is None:
-        results = set_gamma_func_base(input_S)
-    else:
-        results = set_gamma_func_conditional(input_S, condition_index)
-
+    if condition_index is not None:
+        input_S = [i for i in input_S if i != condition_index]
+    
+    S_sub = [i for i in range(p) if i not in input_S]
+    results = compute_gamma_sets(input_S, S_sub)
     return results
-
 
 def duplicated_dgCMatrix(dgCMat, MARGIN):
     """Checks for duplicates in a given sparse matrix (dgCMatrix) along the specified margin."""
