@@ -298,12 +298,17 @@ def module_cauchy_shotgun(
     stored_bf = 0
     Sigma = ld_matrix
 
-    if input_S is not None:
-        S = input_S
-    else:
-        S = []  # we are here
-
     conditional_S = None
+    if len(input_conditional_S_list) == 0:
+        conditional_S_list = []
+        S = input_S if input_S is not None else [0]  # input_S's always none
+    else:
+        conditional_S_list = input_conditional_S_list
+        # Assuming input_conditional_S_list is a dictionary with a key named "Index"
+        conditional_S = input_conditional_S_list['Index']
+        conditional_S = np.unique(conditional_S)
+        S = conditional_S
+
     # null_model = sparse.csr_matrix(np.zeros(p))
     null_model = np.zeros(p)
     null_margin = prior_dist(null_model)
@@ -316,15 +321,6 @@ def module_cauchy_shotgun(
         # B_list - Storage space of candidate models
         B_list = [[null_margin], csr_matrix(np.zeros(p))]
 
-        if input_conditional_S_list is None:
-            conditional_S_list = []
-            conditional_S = None
-        else:
-            conditional_S_list = input_conditional_S_list.copy()
-            conditional_S = input_conditional_S_list["Index"].copy()
-            conditional_S = np.unique(conditional_S)
-            S = conditional_S
-
         # Compute posterior inclusion probability based on the marginal likelihood and model space
         print("INNER ALL ITER", inner_all_iter)
         for l in range(inner_all_iter):
@@ -332,7 +328,8 @@ def module_cauchy_shotgun(
             for h in range(10):
                 # Shotgun COMPUTATION
                 # set_gamma - Model configurations for calculating marginal likelihood
-                set_gamma = set_gamma_func(S, conditional_S, p=p)
+                print(S)
+                set_gamma = set_gamma_func(input_S, conditional_S, p=p)
                 if conditional_S is None:
                     working_S = S
                     base_model = null_model
@@ -970,22 +967,25 @@ def beta_binomial_dist(t):
 ### Function to define the neighbourhood model space
 def set_gamma_func(input_S=None, condition_index=None, p=None):
     """Defines the neighborhood model space by setting gamma functions based on the input set."""
-
     def add_function(y, S_sub):
         """Concatenates and sorts the input value y with each element in the S_sub array."""
         results = [np.sort([x] + y) for x in S_sub]
         return np.array(results)
 
     def compute_gamma_sets(S, S_sub):
-        set_gamma = [[], [], []]
+        set_gamma = [np.array([]) for _ in range(3)]
 
-        if len(S) == 0:
-            set_gamma[1] = [S + [x] for x in S_sub]
-        elif len(S) == 1:
-            set_gamma[0] = [list(comb) for comb in combinations(S, len(S) - 1)]
+        if S == 0:
+            S_sub = np.arange(1, p + 1)
+            set_gamma[1] = np.vstack(S_sub) # column with nrows = p (number of snps)
+            # first and third element of set_gamma remain empty arrays
+        elif S == 1:
+            S_sub = np.array([i for i in range(1, p + 1) if i != S])
+            set_gamma[0] = np.array(list(combinations(S_sub, S - 1))) # non sensical, combinations of S_sub with S-1 elements, but this is 0
             set_gamma[1] = [sorted([x] + S) for x in S_sub]
             set_gamma[2] = add_function(set_gamma[0][0], S_sub).reshape(1, -1)
         else:
+            S_sub = np.array([i for i in range(1, p + 1) if i != S])
             set_gamma[0] = [
                 sorted(list(comb)) if len(S) > 2 else list(comb) for comb in combinations(S, len(S) - 1)
             ]
@@ -998,7 +998,7 @@ def set_gamma_func(input_S=None, condition_index=None, p=None):
     if condition_index is not None:
         input_S = [i for i in input_S if i != condition_index]
     
-    S_sub = [i for i in range(p) if i not in input_S]
+    S_sub = [i for i in range(p) if i != input_S]
     results = compute_gamma_sets(input_S, S_sub)
     return results
 
@@ -1138,3 +1138,4 @@ def ridge_fun(
     return outlier_likelihood(
         test_S_indices, temp_Sigma, z, outlier_tau, len(test_S_indices), 1
     )
+
